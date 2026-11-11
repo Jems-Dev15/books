@@ -1,0 +1,10 @@
+const getCart=()=>DB.get('cart',[]),cartCount=()=>getCart().reduce((a,i)=>a+i.qty,0);
+function addToCart(id,n=1){const b=DB.get('books').find(x=>x.id==id),c=getCart(),i=c.find(x=>x.id==id);
+ if((i?i.qty:0)+n>b.stock)return toast('Only '+b.stock+' copies available.',1);i?i.qty+=n:c.push({id,qty:n});DB.set('cart',c);nav();toast('Added to cart')}
+function totals(code){const bs=DB.get('books'),c=getCart().map(i=>({...i,b:bs.find(x=>x.id==i.id)})).filter(i=>i.b),sub=+c.reduce((a,i)=>a+price(i.b)*i.qty,0).toFixed(2);
+ const codes={BOOK10:['10% off',sub*.1],SAVE50:['₱50 off',Math.min(50,sub)]},ds=codes[(code||'').toUpperCase()]?+codes[code.toUpperCase()][1].toFixed(2):0,ship=!c.length||sub>=1000?0:100;
+ return{items:c,sub,ds,ship,total:+(sub-ds+ship).toFixed(2)}}
+P.cart=()=>{const draw=()=>{const t=totals();if(!t.items.length)return $('#main').innerHTML=empty('Your cart is empty.','Browse books','shop.html');
+ $('#main').innerHTML=`<h1>Shopping cart</h1><div class="card tbl"><table><tr><th>Book</th><th>Price</th><th>Qty</th><th>Total</th><th></th></tr>${t.items.map(i=>`<tr><td>${i.b.title}</td><td>${peso(price(i.b))}</td><td><div class="qty"><button class="btn sm alt" data-q="${i.id}:-1">−</button>${i.qty}<button class="btn sm alt" data-q="${i.id}:1">+</button></div></td><td>${peso(price(i.b)*i.qty)}</td><td><button class="btn sm red" data-r="${i.id}">Remove</button></td></tr>`).join('')}</table></div><p><b>Subtotal: ${peso(t.sub)}</b> (${cartCount()} items) · Shipping calculated at checkout (free over ₱1,000)</p><a class="btn alt" href="shop.html">Continue shopping</a> <a class="btn" href="checkout.html">Proceed to checkout</a>`;
+ $$('[data-q]').forEach(e=>e.onclick=()=>{const[id,n]=e.dataset.q.split(':'),c=getCart(),i=c.find(x=>x.id==id),b=DB.get('books').find(x=>x.id==id);if(i.qty+ +n>b.stock)return toast('Not enough stock.',1);i.qty+=+n;DB.set('cart',c.filter(x=>x.qty>0));nav();draw()});
+ $$('[data-r]').forEach(e=>e.onclick=()=>{DB.set('cart',getCart().filter(x=>x.id!=e.dataset.r));nav();draw()})};draw()};
